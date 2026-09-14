@@ -22,8 +22,10 @@ UPSTREAM = ROOT.parent
 HARNESS = UPSTREAM / "evaluation" / "harness"
 CONTRACT = ROOT / "harness" / "short_answer.txt"
 DEFAULT_TOKENIZER = Path(
-    "/nfs/aimo/shared/fm-pochi/models/opd-32b-bf16-step-225"
-)
+    os.environ.get(
+        "FM_POCHI_MODEL_ROOT", "/nfs/aimo/shared/fm-pochi/models"
+    )
+) / "opd-32b-bf16-step-225"
 sys.path.insert(0, str(HARNESS))
 
 from async_client import AsyncChatClient  # noqa: E402

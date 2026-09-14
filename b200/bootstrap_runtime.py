@@ -9,12 +9,8 @@ import tarfile
 import time
 import urllib.request
 
-base = Path(sys.argv[1]).resolve()
+runtime = Path(sys.argv[1]).resolve()
 run = Path(sys.argv[2]).resolve()
-runtime = base / "runtime"
-local_runtime = Path(
-    os.environ.get("FM_POCHI_RUNTIME_STORAGE", str(Path(__file__).resolve().parent / "runtime"))
-)
 archive = run / "pp-runtime-layer.tar.gz"
 digest = "27c911493f490231f95909cb831ce7d958cd5f2604968dedde7930744708c130"
 size = 4673890422
@@ -76,9 +72,8 @@ if not (runtime / ".extracted.json").exists():
             if count % 10000 == 0:
                 status("extracting_runtime", files=count)
     status("installing_runtime_on_local_storage", files=count)
-    local_runtime.parent.mkdir(parents=True, exist_ok=True)
-    stage.rename(local_runtime)
-    runtime.symlink_to(local_runtime, target_is_directory=True)
+    runtime.parent.mkdir(parents=True, exist_ok=True)
+    stage.rename(runtime)
     (runtime / ".extracted.json").write_text(json.dumps({"layer_sha256": digest, "files": count}) + "\n")
 
 status("relocating_runtime")

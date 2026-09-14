@@ -25,6 +25,10 @@ Input columns are exactly `id,problem`. Output is `submission.csv` with
 engine reuses completed calls and rounds. Changed input, search configuration,
 code, prompts, tokenizer or endpoint require a new run directory.
 
+The AIMO3 public 10 input and reference CSVs are tracked under
+`../data/aimo3-reference/`; evaluation does not depend on the former NFS data
+directory. Gold answers remain scoring-only inputs.
+
 `--budget medium|high|xhigh` uses the corresponding upstream step225 search
 settings verbatim, including its selector settings and temperatures. Medium
 uses 32 candidates per round, 16 reviews per candidate, up to 4 rounds,

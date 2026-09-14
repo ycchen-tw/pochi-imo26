@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
 # Source this file before invoking the dedicated runtime.
-export FM_POCHI_ROOT="${FM_POCHI_ROOT:-/nfs/aimo/shared/fm-pochi}"
-export VENV="$FM_POCHI_ROOT/runtime/venv"
-export FM_POCHI_CACHE="${FM_POCHI_CACHE:-$FM_POCHI_ROOT/runtime/cache/$(id -un)}"
+FM_POCHI_CODE_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+export FM_POCHI_MODEL_ROOT="${FM_POCHI_MODEL_ROOT:-/nfs/aimo/shared/fm-pochi/models}"
+export FM_POCHI_RUNTIME="${FM_POCHI_RUNTIME:-$FM_POCHI_CODE_DIR/runtime}"
+export FM_POCHI_DATA_ROOT="${FM_POCHI_DATA_ROOT:-$FM_POCHI_CODE_DIR/data}"
+export FM_POCHI_STATE_ROOT="${FM_POCHI_STATE_ROOT:-${ARC_RUNS:-/data/home/ycc/work/runs}/_state/fm-pochi-$(id -un)}"
+export VENV="$FM_POCHI_RUNTIME/venv"
+export FM_POCHI_CACHE="${FM_POCHI_CACHE:-$FM_POCHI_RUNTIME/cache/$(id -un)}"
 export PATH="$VENV/bin:$PATH"
-export LD_LIBRARY_PATH="$FM_POCHI_ROOT/runtime/pybase/lib:$VENV/lib/python3.12/site-packages/nvidia/cu13/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export LD_LIBRARY_PATH="$FM_POCHI_RUNTIME/pybase/lib:$VENV/lib/python3.12/site-packages/nvidia/cu13/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 export TMPDIR="$FM_POCHI_CACHE/tmp"
 export XDG_CACHE_HOME="$FM_POCHI_CACHE/xdg"
 export TRITON_CACHE_DIR="$FM_POCHI_CACHE/triton"
@@ -28,4 +32,6 @@ export MAX_JOBS=8
 export OMP_NUM_THREADS=4
 mkdir -p "$TMPDIR" "$XDG_CACHE_HOME" "$TRITON_CACHE_DIR" "$SGLANG_CACHE_DIR" \
   "$TORCHINDUCTOR_CACHE_DIR" "$TORCH_HOME" "$OUTLINES_CACHE_DIR" \
-  "$CUDA_CACHE_PATH" "$HF_HOME" "$UV_CACHE_DIR" "$FLASHINFER_WORKSPACE_BASE"
+  "$CUDA_CACHE_PATH" "$HF_HOME" "$UV_CACHE_DIR" "$FLASHINFER_WORKSPACE_BASE" \
+  "$FM_POCHI_STATE_ROOT"
+unset FM_POCHI_CODE_DIR

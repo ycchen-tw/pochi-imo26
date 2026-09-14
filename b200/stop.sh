@@ -5,7 +5,7 @@ source "$CODE_DIR/env.sh"
 "$VENV/bin/python" - <<'PY'
 import json, os, signal, time
 from pathlib import Path
-file = Path(os.environ['FM_POCHI_ROOT'],'service.json')
+file = Path(os.environ['FM_POCHI_STATE_ROOT'],'service.json')
 state = json.loads(file.read_text())
 pid = state['pid']
 proc = Path(f'/proc/{pid}')

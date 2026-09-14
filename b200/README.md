@@ -14,8 +14,8 @@ For the original generate-verify-refine harness adapted to integer short answers
 see [harness/README.md](harness/README.md).
 
 Everything needed to sample this model at scale on this host's 8x B200.
-The environment is already built. Model weights live on NFS at
-`/nfs/aimo/shared/fm-pochi/models/`; the Python runtime is here in `runtime/`.
+The environment is already built. Only model weights live on NFS; source,
+runtime, caches, state, datasets, logs and results are local under `/data`.
 
 ## Run
 
@@ -42,7 +42,8 @@ p002,"..."
 ```
 
 `answers.csv` needs `id,answer` with the same IDs. Gold answers are used only
-for scoring. Omitting both CSV arguments uses the local AIMO3 public 10 set.
+for scoring. Omitting both CSV arguments uses the Git-tracked local AIMO3 public
+10 set in `data/aimo3-reference/`.
 
 Each sample saves its request, raw SSE stream, full response (including reasoning)
 and result under `samples/`. `status.json` reports progress. Repeat the same
@@ -97,6 +98,18 @@ POCHI_QUANTIZATION=bf16 POCHI_KV_DTYPE=auto POCHI_ATTENTION_BACKEND=fa4 \
 POCHI_CONTEXT_LENGTH=139264 POCHI_MAX_RUNNING_REQUESTS=192 ./start.sh
 ```
 
+Storage paths are independent:
+
+| Variable | Default | Storage |
+|---|---|---|
+| `FM_POCHI_MODEL_ROOT` | `/nfs/aimo/shared/fm-pochi/models` | NFS, read-only weights |
+| `FM_POCHI_RUNTIME` | `b200/runtime` | local `/data` runtime |
+| `FM_POCHI_DATA_ROOT` | `b200/data` | Git-tracked local data |
+| `FM_POCHI_STATE_ROOT` | `$ARC_RUNS/_state/fm-pochi-$USER` | local mutable state |
+
+No start, stop or evaluation path writes to NFS. The only runtime NFS access is
+through `FM_POCHI_MODEL_ROOT` for model and tokenizer files.
+
 Watch the KV pool while a real job is running:
 
 ```bash
@@ -149,8 +162,8 @@ FM_POCHI_RUNTIME_STORAGE=/path/on/local/disk ./setup.sh
 Needs network access to ghcr.io. Keep it on local disk, not NFS — it is ~88k small
 files and import latency dominates.
 
-Server config history, the earlier low-latency setup, and past run outputs are kept
-at `/nfs/aimo/shared/fm-pochi/`.
+The former NFS handoff metadata, code and result bundle was archived locally
+before NFS cleanup; see the migration record beside this checkout.
 
 ## AIMO3 evaluation
 

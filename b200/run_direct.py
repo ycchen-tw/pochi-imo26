@@ -340,8 +340,8 @@ def prepare(args):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--problems', type=Path, default=Path('/nfs/aimo/shared/fm-pochi/data/aimo3-reference/problems.csv'))
-    parser.add_argument('--reference', type=Path, default=Path('/nfs/aimo/shared/fm-pochi/data/aimo3-reference/reference.csv'))
+    parser.add_argument('--problems', type=Path, default=ROOT / 'data/aimo3-reference/problems.csv')
+    parser.add_argument('--reference', type=Path, default=ROOT / 'data/aimo3-reference/reference.csv')
     parser.add_argument('--prompt', type=Path, default=ROOT / 'prompt.txt')
     parser.add_argument('--run-dir', type=Path, required=True)
     parser.add_argument('--k', type=int, default=10)

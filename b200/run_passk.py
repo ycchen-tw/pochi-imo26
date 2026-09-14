@@ -74,7 +74,7 @@ async def main():
     ap.add_argument('--url', default='http://127.0.0.1:30000')
     ap.add_argument('--prompt', type=Path, default=DEFAULT_PROMPT,
                     help='File holding the system prompt (default: prompt.txt beside this script)')
-    ap.add_argument('--problems', default='/nfs/aimo/shared/fm-pochi/data/aimo3-reference/problems.csv')
+    ap.add_argument('--problems', default=str(Path(__file__).with_name('data') / 'aimo3-reference/problems.csv'))
     ap.add_argument('--reference', default=None,
                     help='Optional CSV with id,answer; without it samples are saved unscored')
     ap.add_argument('--mode', choices=['n', 'fanout'], default='fanout')

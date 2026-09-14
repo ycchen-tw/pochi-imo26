@@ -220,7 +220,7 @@ __marimo__/
 
 # Local B200 deployment state. Source, profiles, tests and result summaries under
 # b200/ are tracked; runtime payloads and mutable service state are not.
-/b200/runtime/
+/b200/runtime
 /b200/results/
 /b200/service.json
 /b200/PAUSED.json

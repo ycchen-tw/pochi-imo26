@@ -1,0 +1,13 @@
+{
+  "dataset": "AIMO3 reference problems",
+  "rows": 10,
+  "sha256": "3f020847d92e52b138734b30a8f45770f6587e8a7d7e4e869d349e8b0343b5c8",
+  "downloaded_at": "2026-09-11T14:45:47.181236+00:00",
+  "official_competition": "https://www.kaggle.com/competitions/ai-mathematical-olympiad-progress-prize-3/data",
+  "official_download_http_status": 401,
+  "download_urls": [
+    "https://raw.githubusercontent.com/abonvalle/AIMO3-Kaggle/3f824997feb5147abb9bbcc4c27c3c38db8e86a3/reference.csv",
+    "https://huggingface.co/ofidaner/aimo3-gpt-oss-120b-sft-v08a/resolve/46aea97f5c4cdd464a6c0393cab350d1dadcb9e5/data/reference_10.csv"
+  ],
+  "mirrors_byte_identical": true
+}

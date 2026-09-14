@@ -17,7 +17,7 @@ export POCHI_KV_DTYPE="${POCHI_KV_DTYPE:-fp8_e4m3}"
 export POCHI_ATTENTION_BACKEND="${POCHI_ATTENTION_BACKEND:-trtllm_mha}"
 export POCHI_CONTEXT_LENGTH="${POCHI_CONTEXT_LENGTH:-262144}"
 export POCHI_MAX_RUNNING_REQUESTS="${POCHI_MAX_RUNNING_REQUESTS:-64}"
-MODEL="$FM_POCHI_ROOT/models/opd-32b-bf16-step-225"
+MODEL="$FM_POCHI_MODEL_ROOT/opd-32b-bf16-step-225"
 QUANT_ARGS=()
 case "$POCHI_QUANTIZATION" in
   fp8) QUANT_ARGS=(--quantization fp8) ;;
@@ -40,7 +40,7 @@ case "$POCHI_DFLASH" in
       echo 'DFlash has only been checked with BF16 model/KV and FA4; select that profile explicitly.' >&2
       exit 1
     fi
-    DRAFT="$FM_POCHI_ROOT/models/dflash-32b-draft-v2test-phaseL"
+    DRAFT="$FM_POCHI_MODEL_ROOT/dflash-32b-draft-v2test-phaseL"
     test -f "$DRAFT/config.json"
     export SGLANG_ALLOW_OVERWRITE_LONGER_CONTEXT_LEN=1   # draft says 65536, target is 139264
     export SGLANG_DFLASH_DRAFT_RING=1
@@ -52,7 +52,7 @@ case "$POCHI_DFLASH" in
   *) echo 'POCHI_DFLASH must be 0 or 1.' >&2; exit 1 ;;
 esac
 
-test -f "$FM_POCHI_ROOT/runtime/READY.json" || { echo 'Run setup first: runtime/READY.json missing.' >&2; exit 1; }
+test -f "$FM_POCHI_RUNTIME/READY.json" || { echo 'Run setup first: runtime/READY.json missing.' >&2; exit 1; }
 test -f "$MODEL/config.json"
 
 "$VENV/bin/python" - <<'PY'
@@ -104,7 +104,10 @@ state = {'pid':pid, 'start_ticks':Path(f'/proc/{pid}/stat').read_text().split()[
          'max_running_requests':int(os.environ['POCHI_MAX_RUNNING_REQUESTS']),
          'client_sampling':{'temperature':1.0,'top_p':0.95,'max_tokens':131072}}
 Path(os.environ['RUN_DIR'],'service.json').write_text(json.dumps(state,indent=2)+'\n')
-Path(os.environ['FM_POCHI_ROOT'],'service.json').write_text(json.dumps(state,indent=2)+'\n')
+state_path = Path(os.environ['FM_POCHI_STATE_ROOT'],'service.json')
+temporary = state_path.with_suffix('.json.tmp')
+temporary.write_text(json.dumps(state,indent=2)+'\n')
+os.replace(temporary, state_path)
 print(f"Starting PID {pid}; log: {state['run_dir']}/server.log")
 print(f"API: http://127.0.0.1:{state['port']}/v1   (model name: fm-pochi)")
 PY
