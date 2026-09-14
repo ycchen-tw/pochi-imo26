@@ -76,23 +76,4 @@ if not (runtime / ".extracted.json").exists():
     stage.rename(runtime)
     (runtime / ".extracted.json").write_text(json.dumps({"layer_sha256": digest, "files": count}) + "\n")
 
-status("relocating_runtime")
-venv = runtime / "venv"
-pybase = runtime / "pybase"
-cfg = venv / "pyvenv.cfg"
-cfg.write_text("\n".join("home = " + str(pybase / "bin") if l.startswith("home =") else l
-                         for l in cfg.read_text().splitlines()) + "\n")
-for p in (venv / "bin").iterdir():
-    if p.is_symlink():
-        link = os.readlink(p)
-        if link.startswith("/opt/pp/"):
-            p.unlink()
-            p.symlink_to(os.path.relpath(runtime / link[len("/opt/pp/"):], p.parent))
-        continue
-    if p.is_file():
-        with p.open("rb") as f:
-            first = f.readline(4096)
-        if first.startswith(b"#!") and b"python" in first:
-            data = p.read_bytes()
-            p.write_bytes(("#!" + str(venv / "bin/python3") + "\n").encode() + data[len(first):])
-status("extracted_and_relocated", runtime=str(runtime), layer_sha256=digest)
+status("extracted", runtime=str(runtime), layer_sha256=digest)

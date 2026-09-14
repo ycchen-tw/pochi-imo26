@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
-CODE_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+CODE_DIR="$(cd -- "$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")" && pwd)"
 source "$CODE_DIR/env.sh"
 "$VENV/bin/python" - <<'PY'
 import json, os, signal, time
 from pathlib import Path
 file = Path(os.environ['FM_POCHI_STATE_ROOT'],'service.json')
+if not file.exists():
+    print(f'No recorded local Pochi service: {file}')
+    raise SystemExit(0)
 state = json.loads(file.read_text())
 pid = state['pid']
 proc = Path(f'/proc/{pid}')

@@ -2,7 +2,7 @@
 # Start FM Pochi on 8x B200. Precision and backend are recorded per run.
 set -Eeuo pipefail
 umask 0002
-CODE_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+CODE_DIR="$(cd -- "$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")" && pwd)"
 # env.sh is load-bearing, not convenience: it sets
 # SGLANG_SWA_EVICTION_INTERVAL_MULTIPLIER=0.125, which keeps the per-request SWA
 # footprint at ~4736 tokens. At the upstream default of 1.0 it is ~8320 and the

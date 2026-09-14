@@ -1,16 +1,18 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 umask 0002
-CODE_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+CODE_DIR="$(cd -- "$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")" && pwd)"
 REPO_DIR="$(cd -- "$CODE_DIR/.." && pwd)"
 export FM_POCHI_RUNTIME="${FM_POCHI_RUNTIME:-$CODE_DIR/runtime}"
 if [[ -f "$FM_POCHI_RUNTIME/READY.json" ]]; then
+  python3 "$CODE_DIR/relocate_runtime.py" "$FM_POCHI_RUNTIME"
   echo "Runtime already prepared: $FM_POCHI_RUNTIME"
   exit 0
 fi
 RUN_DIR="${RUN_DIR:-${ARC_RUNS:-/data/home/ycc/work/runs}/fm-pochi-setup-$(date -u +%Y%m%dT%H%M%SZ)}"
 mkdir -p "$RUN_DIR"
 python3 "$CODE_DIR/bootstrap_runtime.py" "$FM_POCHI_RUNTIME" "$RUN_DIR"
+python3 "$CODE_DIR/relocate_runtime.py" "$FM_POCHI_RUNTIME"
 source "$CODE_DIR/env.sh"
 "$FM_POCHI_RUNTIME/uv" pip install --python "$VENV/bin/python" -r "$REPO_DIR/evaluation/requirements.txt"
 "$FM_POCHI_RUNTIME/uv" pip install --python "$VENV/bin/python" --no-deps --reinstall nvidia-cutlass-dsl-libs-cu13==4.5.2

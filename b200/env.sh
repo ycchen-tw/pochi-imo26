@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Source this file before invoking the dedicated runtime.
-FM_POCHI_CODE_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+FM_POCHI_CODE_DIR="$(cd -- "$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")" && pwd)"
 export FM_POCHI_MODEL_ROOT="${FM_POCHI_MODEL_ROOT:-/nfs/aimo/shared/fm-pochi/models}"
 export FM_POCHI_RUNTIME="${FM_POCHI_RUNTIME:-$FM_POCHI_CODE_DIR/runtime}"
 export FM_POCHI_DATA_ROOT="${FM_POCHI_DATA_ROOT:-$FM_POCHI_CODE_DIR/data}"

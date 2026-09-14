@@ -145,7 +145,7 @@ requests are recomputed, results stay correct, throughput drops.
 | `prompt.txt` | the system prompt |
 | `env.sh` | environment; sourced by `start.sh`, not optional |
 | `runtime/` | the pinned Python runtime, 11 GB |
-| `setup.sh`, `bootstrap_runtime.py`, `patch_fa4_decode.py`, parent repo | rebuild the runtime |
+| `setup.sh`, `bootstrap_runtime.py`, `relocate_runtime.py`, `patch_fa4_decode.py`, parent repo | rebuild or relocate the runtime |
 
 `stop.sh` checks PID, start_ticks, cmdline and process-group leadership before
 signalling, so it cannot kill a server it did not start.
@@ -163,7 +163,7 @@ Needs network access to ghcr.io. Keep it on local disk, not NFS — it is ~88k s
 files and import latency dominates.
 
 The former NFS handoff metadata, code and result bundle was archived locally
-before NFS cleanup; see the migration record beside this checkout.
+before NFS cleanup; see [NFS-MIGRATION.md](NFS-MIGRATION.md).
 
 ## AIMO3 evaluation
 
