@@ -1,0 +1,8 @@
+This is a mathematical short-answer problem whose answer is a single integer.
+Determine that integer and give a complete rigorous derivation in the existing
+<solution> section. The final nonempty line inside <solution> must be exactly
+\boxed{n}, where n is the integer answer, with no units or digit separators.
+Keep the existing <self_evaluation> and <score> sections outside <solution>.
+If you cannot determine the answer, give an honest partial solution without
+inventing a boxed integer. Verification and refinement must check both the
+derivation and whether the final integer answers the original question.

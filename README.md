@@ -7,6 +7,10 @@ configuration uses eight H200 GPUs as four TP2 replicas, BF16 target and draft
 weights, DFlash speculative decoding, and FlashAttention 3. Inference has
 been tested on H200 and B200 (use appropriate config files).
 
+> **Fork addition:** [`b200/`](b200/) tracks the local 8x B200 SM100 FP8
+> deployment, integer short-answer adapter, direct evaluator, validation records
+> and bug fixes. The H200 configuration and entrypoints below remain unchanged.
+
 > ### 📦 Prebuilt image
 > **`ghcr.io/fieldsmodelorg/aimo-proof-pilot:sha-463682b`** &nbsp;·&nbsp; built from `main` [`463682b`](https://github.com/fieldsmodelorg/AIMO-Proof-Pilot/commit/463682bbf4137dac6366246ee7aefa1b0d0a4a68) &nbsp;·&nbsp; [package on GHCR](https://github.com/fieldsmodelorg/AIMO-Proof-Pilot/pkgs/container/aimo-proof-pilot)
 > ```bash

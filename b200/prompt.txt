@@ -1,0 +1,1 @@
+Solve the mathematical problem. Its answer is a single integer. You may reason internally before answering. Put your final integer answer inside \boxed{...}. Your final response must be exactly \boxed{n}, where n is the integer answer, with no explanation, units, or digit separators.
