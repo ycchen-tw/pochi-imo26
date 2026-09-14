@@ -22,6 +22,7 @@ import time
 import httpx
 
 ROOT = Path(__file__).resolve().parent
+DEFAULT_DATA_ROOT = Path(os.environ.get("FM_POCHI_DATA_ROOT", ROOT / "data"))
 
 
 def now():
@@ -340,8 +341,8 @@ def prepare(args):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--problems', type=Path, default=ROOT / 'data/aimo3-reference/problems.csv')
-    parser.add_argument('--reference', type=Path, default=ROOT / 'data/aimo3-reference/reference.csv')
+    parser.add_argument('--problems', type=Path, default=DEFAULT_DATA_ROOT / 'aimo3-reference/problems.csv')
+    parser.add_argument('--reference', type=Path, default=DEFAULT_DATA_ROOT / 'aimo3-reference/reference.csv')
     parser.add_argument('--prompt', type=Path, default=ROOT / 'prompt.txt')
     parser.add_argument('--run-dir', type=Path, required=True)
     parser.add_argument('--k', type=int, default=10)

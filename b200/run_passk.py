@@ -5,11 +5,12 @@ Two sampling modes, so we can measure which one the server actually handles bett
   --mode n     one request per problem with n=k   (k samples share one prefill)
   --mode fanout  k independent requests per problem (radix cache dedupes the prefix)
 """
-import argparse, asyncio, csv, json, re, sys, time
+import argparse, asyncio, csv, json, os, re, sys, time
 from pathlib import Path
 import urllib.request
 
 DEFAULT_PROMPT = Path(__file__).with_name("prompt.txt")
+DEFAULT_DATA_ROOT = Path(os.environ.get("FM_POCHI_DATA_ROOT", Path(__file__).with_name("data")))
 
 def parse_boxed_integer(content):
     boxes = list(re.finditer(r'\\boxed\s*\{', content))
@@ -74,7 +75,7 @@ async def main():
     ap.add_argument('--url', default='http://127.0.0.1:30000')
     ap.add_argument('--prompt', type=Path, default=DEFAULT_PROMPT,
                     help='File holding the system prompt (default: prompt.txt beside this script)')
-    ap.add_argument('--problems', default=str(Path(__file__).with_name('data') / 'aimo3-reference/problems.csv'))
+    ap.add_argument('--problems', default=str(DEFAULT_DATA_ROOT / 'aimo3-reference/problems.csv'))
     ap.add_argument('--reference', default=None,
                     help='Optional CSV with id,answer; without it samples are saved unscored')
     ap.add_argument('--mode', choices=['n', 'fanout'], default='fanout')

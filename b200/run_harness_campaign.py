@@ -176,7 +176,7 @@ def main():
     root=args.run_dir.resolve(); root.mkdir(parents=True,exist_ok=True)
     lock=(root/'.lock').open('a')
     fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
-    source=ROOT/'data/aimo3-reference'
+    source=Path(os.environ.get('FM_POCHI_DATA_ROOT', ROOT/'data'))/'aimo3-reference'
     for name in ['problems.csv','reference.csv']:
         if not (root/name).exists():shutil.copy2(source/name,root/name)
         if (root/name).read_bytes()!=(source/name).read_bytes():raise RuntimeError('pinned dataset changed')
