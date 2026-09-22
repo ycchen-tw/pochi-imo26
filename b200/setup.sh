@@ -20,27 +20,11 @@ bash "$REPO_DIR/sglang_patches/apply_patches.sh" "$VENV" \
   "$FM_POCHI_RUNTIME/proof-pilot/deploy/w4a8/humming_w4a8.py"
 "$VENV/bin/python" "$CODE_DIR/patch_fa4_decode.py" "$VENV"
 "$VENV/bin/python" "$REPO_DIR/docker/validate_cutlass_install.py"
-"$VENV/bin/python" - <<'PY'
-import hashlib, importlib.metadata, json, os, sys
-from pathlib import Path
-import sglang, torch, flash_attn
-runtime = Path(os.environ['FM_POCHI_RUNTIME'])
-venv = Path(os.environ['VENV'])
-assert Path(sys.base_prefix).resolve() == (runtime/'pybase').resolve()
-model = venv/'lib/python3.12/site-packages/sglang/srt/models/olmo2.py'
-assert 'class Olmo3SinkForCausalLM' in model.read_text()
-packages = ['sglang','torch','transformers','flash-attn-4','flashinfer-python',
-            'nvidia-cutlass-dsl','nvidia-cutlass-dsl-libs-cu13']
-versions = {name:importlib.metadata.version(name) for name in packages}
-report = {'upstream_commit':'5d23e406e150088c4634afe83db8468c483f2fa1',
-          'runtime_layer_sha256':'27c911493f490231f95909cb831ce7d958cd5f2604968dedde7930744708c130',
-          'packages':versions, 'olmo3_sink_patch_sha256':hashlib.sha256(model.read_bytes()).hexdigest()}
-backend = venv/'lib/python3.12/site-packages/sglang/srt/layers/attention/flashattention_backend.py'
-assert 'FM_POCHI_FA4_DECODE_SPLITKV_V1' in backend.read_text()
-report['fa4_decode_splitkv'] = {'marker':'FM_POCHI_FA4_DECODE_SPLITKV_V1',
-    'backend_sha256':hashlib.sha256(backend.read_bytes()).hexdigest(),
-    'splits_by_graph_batch':{'1':32,'2':16,'4':8,'8':4},
-    'scope':'Pochi TP2 BF16 full-attention decode only'}
-(runtime/'READY.json').write_text(json.dumps(report,indent=2)+'\n')
-print(json.dumps(report,indent=2))
-PY
+# READY.json is written by verify_runtime.py, which the container build calls
+# too -- one definition of "this runtime is correct", asserted identically
+# bare-metal and in the image.
+# --correctness-cases carries forward the 40 dynamic cases the split-KV patch
+# was checked against on 2026-09-11. It is recorded, not re-measured; the
+# backend_sha256 in the same report is what ties the claim to this patch.
+"$VENV/bin/python" "$CODE_DIR/verify_runtime.py" \
+  --runtime "$FM_POCHI_RUNTIME" --venv "$VENV" --correctness-cases 40
