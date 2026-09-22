@@ -142,6 +142,24 @@ jobs:
           print("harness prepare OK")
           PY
 
+      - name: Harness refuses to run without real provenance
+        # The run manifest pins the source commit so a changed run cannot reuse
+        # an old run directory. There is no .git and no git binary in the image,
+        # so the commit is baked from VCS_REF -- and if that was never passed,
+        # recording "unknown" would produce a manifest that looks pinned and is
+        # not. Assert it fails instead.
+        run: |
+          set +e
+          output=$(docker run --rm -v "$PWD/models:/models:ro" \
+            -e FM_POCHI_SOURCE_COMMIT=unknown \
+            fm-pochi-b200:verify prepare --budget medium 2>&1)
+          status=$?
+          set -e
+          echo "$output"
+          test $status -ne 0 || { echo "expected a non-zero exit for unknown provenance"; exit 1; }
+          grep -q "source commit" <<<"$output" \
+            || { echo "expected the provenance error"; exit 1; }
+
       - name: Entrypoint refuses to serve without weights
         # A container that starts, fails to find the model and then sits there
         # is worse than one that exits loudly. Assert the loud path.

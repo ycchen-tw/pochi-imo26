@@ -105,6 +105,13 @@ ENV FM_POCHI_RUNTIME=/opt/pp \
     NVIDIA_VISIBLE_DEVICES=all \
     NVIDIA_DRIVER_CAPABILITIES=compute,utility
 
+# run_math_harness.py pins the source commit into every run manifest. Bare-metal
+# it shells out to git; there is no .git here (.dockerignore drops it) and no
+# git binary, so the commit is baked instead. Build without --build-arg VCS_REF
+# and this stays "unknown", which the harness rejects rather than recording as
+# provenance -- a manifest that looks pinned and is not is worse than an error.
+ENV FM_POCHI_SOURCE_COMMIT=$VCS_REF
+
 # Apptainer runs the container as the INVOKING USER, not root, and the SIF
 # rootfs is read-only squashfs. These have to be world-writable or every run
 # without an explicit bind dies inside a JIT compile. /models stays read-only:

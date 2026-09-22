@@ -105,6 +105,34 @@ def atomic_bytes(path: Path, data: bytes) -> None:
     os.replace(temporary, path)
 
 
+def source_commit() -> str:
+    """The commit this harness code came from, for the run manifest.
+
+    The manifest pins source, inputs and config so a changed run cannot reuse
+    an old run directory, and the commit is part of that pin. `git rev-parse`
+    supplies it bare-metal, but a container has no .git -- the image is built
+    from a checkout and carries the commit as FM_POCHI_SOURCE_COMMIT instead.
+
+    Both missing is a hard error. A manifest that records "unknown" provenance
+    is worse than a run that refuses to start: it looks pinned and is not.
+    """
+    pinned = os.environ.get("FM_POCHI_SOURCE_COMMIT", "").strip()
+    if pinned and pinned != "unknown":
+        return pinned
+    try:
+        return subprocess.check_output(
+            ["git", "-C", str(UPSTREAM), "rev-parse", "HEAD"], text=True
+        ).strip()
+    except (OSError, subprocess.CalledProcessError) as error:
+        raise SystemExit(
+            f"cannot determine the source commit for the run manifest ({error}).\n"
+            "Outside a git checkout set FM_POCHI_SOURCE_COMMIT to the commit this "
+            "code came from. The container image bakes it at build time from the "
+            "VCS_REF build-arg -- if you built it yourself, pass "
+            "--build-arg VCS_REF=$(git rev-parse HEAD)."
+        ) from error
+
+
 def prepare(args: argparse.Namespace) -> tuple[list[InputRow], dict]:
     """Pin all solver inputs before allowing original per-call checkpoints to resume."""
     if args.limit < 0:
@@ -131,9 +159,7 @@ def prepare(args: argparse.Namespace) -> tuple[list[InputRow], dict]:
     manifest = {
         "schema_version": 1,
         "engine": "upstream.evaluation.harness.proof_search.ProblemSearch",
-        "upstream_commit": subprocess.check_output(
-            ["git", "-C", str(UPSTREAM), "rev-parse", "HEAD"], text=True
-        ).strip(),
+        "upstream_commit": source_commit(),
         "source_sha256": {str(p.relative_to(UPSTREAM)): sha256(p.read_bytes()) for p in source_paths},
         "input_sha256": sha256(args.input.read_bytes()),
         "config_sha256": sha256(config_path.read_bytes()),

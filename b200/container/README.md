@@ -46,8 +46,17 @@ no-weights failure path against the built image, and only then pushes to
 `b200/`):
 
 ```bash
-docker build -f b200/container/Dockerfile -t fm-pochi-b200 .
+docker build -f b200/container/Dockerfile -t fm-pochi-b200 \
+  --build-arg VCS_REF=$(git rev-parse HEAD) .
 ```
+
+`VCS_REF` is not optional in practice. `run_math_harness.py` pins the source
+commit into every run manifest, so a changed run cannot silently reuse an old
+run directory. Bare-metal it shells out to `git`; the image has neither `.git`
+(`.dockerignore` drops it) nor a `git` binary, so the commit is baked in at
+build time. Omit the build-arg and it stays `unknown`, which the harness
+rejects at startup rather than writing as provenance — a manifest that looks
+pinned and is not is worse than a refusal.
 
 The build needs no GPU. `/opt/pp` is inherited from a published base image that
 already carries it (`RUNTIME_BASE_IMAGE`, default
