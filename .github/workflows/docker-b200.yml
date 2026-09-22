@@ -161,18 +161,24 @@ jobs:
           name: image-ready-json
           path: image-ready.json
 
-      - name: Push
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: b200/container/Dockerfile
-          platforms: linux/amd64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            VCS_REF=${{ github.sha }}
-            RUNTIME_BASE_IMAGE=${{ inputs.runtime_base_image || 'ghcr.io/fieldsmodelorg/aimo-proof-pilot:sha-463682b' }}
-          cache-from: type=gha
-          provenance: mode=max
-          sbom: true
+      # Tag and push the image that was just verified, rather than building a
+      # second time. A second build could differ from the one the gates above
+      # ran against -- base image resolution, a moved PyPI file -- and then the
+      # published artifact is not the artifact anyone checked.
+      - name: Push the verified image
+        run: |
+          set -Eeuo pipefail
+          while read -r tag; do
+            [[ -n "$tag" ]] || continue
+            echo "== $tag"
+            docker tag fm-pochi-b200:verify "$tag"
+            docker push "$tag"
+          done <<< "${{ steps.meta.outputs.tags }}"
+
+      - name: Report the digest
+        run: |
+          docker images --digests | head -5
+          echo "Pull with:"
+          while read -r tag; do
+            [[ -n "$tag" ]] && echo "  docker pull $tag"
+          done <<< "${{ steps.meta.outputs.tags }}"
