@@ -1,0 +1,178 @@
+name: Publish B200 image
+
+# The B200 FP8 profile, built and verified without any GPU. Separate from
+# docker.yml because it publishes a different artifact: that one ships the
+# upstream H200 runtime and patches SGLang at boot; this one bakes the full
+# B200 patch set (including b200/patch_fa4_decode.py, which the root Dockerfile
+# never applies) and writes READY.json at build time.
+#
+# On demand only -- the image is ~19 GB.
+on:
+  workflow_dispatch:
+    inputs:
+      runtime_base_image:
+        description: "Image carrying a prebuilt /opt/pp"
+        required: false
+        default: "ghcr.io/fieldsmodelorg/aimo-proof-pilot:sha-463682b"
+  push:
+    tags:
+      - "b200-v*"
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: docker-b200-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # These need neither GPU nor runtime: server_argv.py is stdlib-only, and
+      # the drift test is what keeps the container's command line identical to
+      # start.sh's. Run it before spending 20 minutes on a 19 GB bake.
+      - name: Server argv parity and drift tests
+        run: python -m unittest discover -s b200/harness -p 'test_server_argv.py' -v
+
+      - name: Free up runner disk
+        # Same reasoning as docker.yml: the runtime layer alone extracts to
+        # ~11 GB and the finished image is ~19 GB, against ~25 GB of
+        # preinstalled toolchains we do not need.
+        run: |
+          echo "before:"; df -h / | tail -1
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+            /opt/hostedtoolcache/CodeQL /usr/local/share/boost \
+            /usr/local/share/powershell /usr/share/swift || true
+          sudo docker image prune -af || true
+          echo "after:"; df -h / | tail -1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/${{ github.repository }}-b200
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix=sha-
+            type=ref,event=tag
+
+      - name: Build and load for verification
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: b200/container/Dockerfile
+          platforms: linux/amd64
+          # Load into the local daemon first. Verifying before pushing is the
+          # point: a broken image that is already published is a broken image
+          # somebody downstream will pull.
+          load: true
+          push: false
+          tags: fm-pochi-b200:verify
+          build-args: |
+            VCS_REF=${{ github.sha }}
+            RUNTIME_BASE_IMAGE=${{ inputs.runtime_base_image || 'ghcr.io/fieldsmodelorg/aimo-proof-pilot:sha-463682b' }}
+          cache-from: type=gha
+
+      # The gate that makes this artifact trustworthy without a GPU. `verify`
+      # imports sglang/torch/flash_attn, asserts the venv relocated correctly,
+      # and asserts both the Olmo3Sink patch and the FA4 split-KV marker are
+      # present. None of that needs a device.
+      - name: Verify the built image (no GPU)
+        run: |
+          docker run --rm fm-pochi-b200:verify verify --output /tmp/READY.json \
+            | tee image-ready.json
+          python - <<'PY'
+          import json, sys
+          report = json.load(open("image-ready.json"))
+          assert report["fa4_decode_splitkv"]["marker"] == "FM_POCHI_FA4_DECODE_SPLITKV_V1", report
+          for name in ("sglang", "torch", "flash-attn-4", "nvidia-cutlass-dsl-libs-cu13"):
+              assert report["packages"].get(name), f"missing {name}: {report['packages']}"
+          print("image READY.json OK:", json.dumps(report["packages"], indent=2))
+          PY
+
+      - name: Fetch the tokenizer (10 MB, no weights)
+        # --prepare-only needs the target tokenizer to fingerprint the run; it
+        # does NOT need the 61 GB of weights. Pinned to the same revision
+        # download_models.sh uses, so CI checks the tokenizer the deployment
+        # will actually load. Public repo, no token.
+        run: |
+          rev=f14030d3c65e1ed59e4e70477297053fc9a75151
+          base="https://huggingface.co/fieldsmodelorg/FM-Pochi-32B-IMO26/resolve/$rev/opd-32b-bf16-step-225"
+          mkdir -p models/opd-32b-bf16-step-225
+          for f in tokenizer.json tokenizer_config.json config.json \
+                   generation_config.json chat_template.jinja; do
+            curl -fsSL "$base/$f" -o "models/opd-32b-bf16-step-225/$f"
+          done
+          ls -la models/opd-32b-bf16-step-225
+
+      - name: Harness accepts its inputs (no GPU, no server, no requests)
+        # run_math_harness.py --prepare-only resolves the search config and pins
+        # the input CSV without contacting a model. It exercises the harness
+        # import path, the baked AIMO3 dataset, the short-answer contract and
+        # the tokenizer fingerprint -- everything except inference.
+        run: |
+          docker run --rm -v "$PWD/models:/models:ro" \
+            fm-pochi-b200:verify prepare --budget medium | tee prepare.json
+          python - <<'PY'
+          import json
+          plan = json.load(open("prepare.json"))
+          body = json.dumps(plan)
+          assert "proofs_per_round" in body, f"no search config in plan: {sorted(plan)}"
+          print("harness prepare OK")
+          PY
+
+      - name: Entrypoint refuses to serve without weights
+        # A container that starts, fails to find the model and then sits there
+        # is worse than one that exits loudly. Assert the loud path.
+        run: |
+          set +e
+          output=$(docker run --rm fm-pochi-b200:verify serve 2>&1)
+          status=$?
+          set -e
+          echo "$output"
+          test $status -ne 0 || { echo "expected a non-zero exit without weights"; exit 1; }
+          grep -q "Mount the weights" <<<"$output" \
+            || { echo "expected the mount instructions in the error"; exit 1; }
+
+      - name: Record the runtime report
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-ready-json
+          path: image-ready.json
+
+      - name: Push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: b200/container/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VCS_REF=${{ github.sha }}
+            RUNTIME_BASE_IMAGE=${{ inputs.runtime_base_image || 'ghcr.io/fieldsmodelorg/aimo-proof-pilot:sha-463682b' }}
+          cache-from: type=gha
+          provenance: mode=max
+          sbom: true
